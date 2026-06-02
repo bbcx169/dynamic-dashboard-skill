@@ -1,0 +1,16 @@
+# Local environment config files
+.clasp.json
+node_modules/
+package-lock.json
+tmp/
+scratch/
+.env
+.env.*
+.vscode/
+.idea/
+*.tmp
+*.suo
+*.swp
+Thumbs.db
+ehthumbs.db
+Desktop.ini
