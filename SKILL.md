@@ -12,48 +12,60 @@ description: 建立與 Google 試算表（Google Sheets）動態數據同步的 
 在開始前，先評估試算表權限並選擇最優讀取路徑：
 
 ### 🔓 途徑 A：試算表為「公開」 (知道連結的任何人均可檢視)
-- **優點**：最簡捷，繞過所有 Google 帳號登入與 NotebookLM 快取卡死問題。
 - **步驟**：AI 助理在背景直接使用網路請求從以下 URL 直讀並解析 CSV 數據：
   `https://docs.google.com/spreadsheets/d/<試算表ID>/export?format=csv`
 
 ### 🔒 途徑 B：試算表為「非公開」 (限特定帳號存取)
-- **優點**：高安全性，保護內部隱私數據不外洩。
-- **步驟**：透過本機已登入的 `nlm` (NotebookLM CLI) 工具安全地匯入專屬筆記本：
-  ```powershell
-  # 建立專屬筆記本
-  nlm create notebook "專案數據筆記本"
-  # 將私人試算表安全地加入該筆記本作為上下文
-  nlm add drive <筆記本ID> <試算表文件ID> --type sheets --wait
-  ```
-  *(注意：若 nlm 指令報錯或卡死，請參考下方常見問題排除。)*
+- **步驟**：透過本機已登入的 `nlm` (NotebookLM CLI) 工具安全地匯入專屬筆記本並讀取。
 
-## 2. 產出動態前後端程式碼 (直接以試算表數據與結構生成)
-- 依據途徑 A（下載並讀取 CSV）或途徑 B（透過 `nlm content` 獲取內容）直讀該試算表的原始數據與表頭欄位。
-- AI 助理無須經過繁瑣的對答，直接依據讀取到的試算表真實資料結構，在本地 `tmp/` 目錄下生成高度匹配且完全動態連動的 3 個核心檔案：
-  - `Code.gs`：負責伺服器端 `doGet()` 路由與 Spreadsheet 資料解析（包含數值清洗，去除 %、轉換整數）。
-  - `index.html`：基於 Chart.js 提供極致 Vanilla CSS 暗色系視覺效果的前端頁面，支援類別篩選與排序切換功能。
-  - `appsscript.json`：設定 Apps Script 專案屬性。
+---
 
+## 2. 需求確認與 6 大核心項目互動式問卷
 
+讀取數據與結構後，**請先暫停，不要直接生成程式碼**。請向使用者發送一份「互動式規劃問卷」，針對以下 6 大核心項目，**每個項目各提供 3 個基於試算表特徵的具體建議選項**，讓使用者選擇或提出修改建議：
 
-## 3. 連接與強制推送 (clasp)
-- 請使用者點選試算表的 `擴充功能` -> `Apps Script`，複製專案設定中的 **指令碼 ID (Script ID)**。
-- 本地建立 `.clasp.json`：
-  ```json
-  {
-    "scriptId": "<指令碼 ID>"
-  }
-  ```
-- 執行強制推送（首次推送必須加上 `-f` 以覆蓋預設 placeholder）：
+### 📊 ① 核心指標與計算邏輯 (KPI Metrics)
+* **目的**：定義最頂端的核心指標卡片。
+* **詢問與建議**：列出試算表中最適合做為 KPI 的三個方向（例如：加總、最新值、計算比率）。
+
+### 📈 ② 圖表類型與維度對照 (Chart Selection)
+* **目的**：決定主要視覺圖表。
+* **詢問與建議**：依據資料結構建議 3 種合適的圖表類型與 X/Y 軸對照方式（例如：歷年趨勢折線圖、類別佔比圓餅圖、對比條形圖）。
+
+### 🔍 ③ 篩選器與分類維度 (Filters & Dimensions)
+* **目的**：決定使用者如何篩選數據。
+* **詢問與建議**：提供 3 種下拉選單或按鈕篩選建議（例如：依大類篩選、依年度切換、依特定狀態過濾）。
+
+### 🧮 ④ 數據清洗與排除規則 (Data Cleaning & Exclusions)
+* **目的**：避免垃圾資料或重複計算。
+* **詢問與建議**：針對數據中的文字備註、合計列或極值，提供 3 種處理策略（例如：自動移除括號文字、在圖表中隱藏「總計」列、將空值設為0）。
+
+### 🎨 ⑤ 視覺風格與排版權重 (Theme & Layout)
+* **目的**：提升儀表板質感。
+* **詢問與建議**：提供 3 種配色與排版組合（例如：極致暗色模式、高對比專業亮色、以核心大類為主題的主色調）。
+
+### 🎯 ⑥ 業務故事與決策目標 (Business Goal)
+* **目的**：決定額外的功能（警示、達成率等）。
+* **詢問與建議**：提供 3 種應用場景建議（例如：主管例會報告、即時違規監控、專案進度追蹤）。
+
+---
+
+## 3. 產出動態前後端程式碼
+
+當使用者完成上述 6 大核心項目的確認後，依據討論共識在本地 `tmp/` 目錄下生成 3 個核心檔案：
+- `Code.gs`：負責伺服器端 `doGet()` 路由與符合上述共識的資料解析與清洗邏輯。
+- `index.html`：基於 Chart.js 提供符合共識的前端互動頁面，實作篩選器、KPI 卡片與圖表。
+- `appsscript.json`：設定 Apps Script 專案屬性。
+
+## 4. 連接與強制推送 (clasp)
+- 本地建立 `.clasp.json`，填入 Script ID。
+- 執行強制推送：
   ```powershell
   npx.cmd clasp push -f
   ```
 
-## 4. 部署網頁應用程式
-- 指引使用者在 Apps Script 網頁後台：
-  1. 點選 `部署` -> `新增部署` -> 選擇 `網頁應用程式`。
-  2. 設定執行身份為「我」，誰可以存取為「所有人」。
-  3. 部署並完成 Google 帳號授權，取得網頁應用程式網址。
+## 5. 部署網頁應用程式
+- 指引使用者在 Apps Script 網頁後台進行「新增部署」為「網頁應用程式」，並設定存取權限為「所有人」。
 
 ---
 
@@ -61,7 +73,6 @@ description: 建立與 Google 試算表（Google Sheets）動態數據同步的 
 
 | 問題 | 解法 |
 |---|---|
-| nlm 指令找不到 (未在 PATH 中) | 將 `C:\Users\<你>\AppData\Roaming\Python\Python314\Scripts` 加入 Windows 環境變數 PATH 中。 |
-| NotebookLM 登入快取卡死 / 驗證過期 | 執行 `nlm login profile delete default -y` 刪除舊 Profile，再重新執行 `nlm login` 登入。 |
-| GitHub CLI 提示 Token 無效 | 執行 `$env:GITHUB_TOKEN = $null` 清除沙盒環境自動注入的 dummy token，回歸使用本機 Keyring。 |
-| clasp push 顯示 Skipping push | 執行 `npx.cmd clasp push -f` 加上 `--force` 參數以強制覆蓋雲端預設程式碼。 |
+| nlm 指令找不到 | 將 Python Scripts 目錄加入 PATH 環境變數。 |
+| GitHub CLI 提示 Token 無效 | 執行 `$env:GITHUB_TOKEN = $null` 以回歸 Keyring。 |
+| clasp push 顯示 Skipping push | 使用 `npx.cmd clasp push -f` 強制覆蓋。 |
