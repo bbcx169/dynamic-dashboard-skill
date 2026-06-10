@@ -1,78 +1,43 @@
 ---
 name: dynamic-dashboard
-description: 建立與 Google 試算表（Google Sheets）動態數據同步的 Apps Script 儀表板。當說「建立動態儀表板」「設定動態數據儀表板」或「動態儀表板」時載入此技能。
+description: 建立與 Google 試算表動態同步的 Apps Script 儀表板。當提到「建立動態儀表板」時載入。
 ---
 
-# 動態數據儀表板建置與自動化部署技能
+# 動態數據儀表板建置技能
 
-當使用者想要針對 Google 試算表（Google Sheets）建立動態同步儀表板時，請遵循以下完整步驟與排錯指南：
+## 1. 數據存取途徑
+* **公開試算表**：背景直讀並解析 CSV：`https://docs.google.com/spreadsheets/d/<ID>/export?format=csv`
+* **非公開試算表**：使用 `nlm` (NotebookLM CLI) 安全讀取。
 
-## 1. 資料來源評估與讀取 (公開 vs 私人)
+## 2. 6 大核心項目互動規劃 (生成前暫停並提問)
+列出基於資料特徵的具體建議（每項 3 個選項），請用戶確認：
+1. **KPI 指標與邏輯** (KPI Metrics)
+2. **圖表類型與 X/Y 軸** (Chart Selection)
+3. **篩選與分類維度** (Filters & Dimensions)
+4. **清洗與排除規則** (Data Cleaning: 如排除總計、空值設 0)
+5. **配色與排版** (Theme & Layout)
+6. **決策目標** (Business Goal)
 
-在開始前，先評估試算表權限並選擇最優讀取路徑：
+## 3. 生成前後端程式碼 (於 `tmp/` 目錄)
+* `Code.gs`：`doGet()` 路由及資料清洗。
+* `index.html`：前端 Chart.js、篩選器與 KPI 介面。
+* `appsscript.json`：專案設定。
 
-### 🔓 途徑 A：試算表為「公開」 (知道連結的任何人均可檢視)
-- **步驟**：AI 助理在背景直接使用網路請求從以下 URL 直讀並解析 CSV 數據：
-  `https://docs.google.com/spreadsheets/d/<試算表ID>/export?format=csv`
+## 4. 部署與推播 (clasp)
+* 寫入 `.clasp.json`，並執行 `npx.cmd clasp push -f` 強制推播。
+* 指引用戶在後台將「新增部署」設為「網頁應用程式」，權限為「所有人」。
 
-### 🔒 途徑 B：試算表為「非公開」 (限特定帳號存取)
-- **步驟**：透過本機已登入的 `nlm` (NotebookLM CLI) 工具安全地匯入專屬筆記本並讀取。
-
----
-
-## 2. 需求確認與 6 大核心項目互動式問卷
-
-讀取數據與結構後，**請先暫停，不要直接生成程式碼**。請向使用者發送一份「互動式規劃問卷」，針對以下 6 大核心項目，**每個項目各提供 3 個基於試算表特徵的具體建議選項**，讓使用者選擇或提出修改建議：
-
-### 📊 ① 核心指標與計算邏輯 (KPI Metrics)
-* **目的**：定義最頂端的核心指標卡片。
-* **詢問與建議**：列出試算表中最適合做為 KPI 的三個方向（例如：加總、最新值、計算比率）。
-
-### 📈 ② 圖表類型與維度對照 (Chart Selection)
-* **目的**：決定主要視覺圖表。
-* **詢問與建議**：依據資料結構建議 3 種合適的圖表類型與 X/Y 軸對照方式（例如：歷年趨勢折線圖、類別佔比圓餅圖、對比條形圖）。
-
-### 🔍 ③ 篩選器與分類維度 (Filters & Dimensions)
-* **目的**：決定使用者如何篩選數據。
-* **詢問與建議**：提供 3 種下拉選單或按鈕篩選建議（例如：依大類篩選、依年度切換、依特定狀態過濾）。
-
-### 🧮 ④ 數據清洗與排除規則 (Data Cleaning & Exclusions)
-* **目的**：避免垃圾資料或重複計算。
-* **詢問與建議**：針對數據中的文字備註、合計列或極值，提供 3 種處理策略（例如：自動移除括號文字、在圖表中隱藏「總計」列、將空值設為0）。
-
-### 🎨 ⑤ 視覺風格與排版權重 (Theme & Layout)
-* **目的**：提升儀表板質感。
-* **詢問與建議**：提供 3 種配色與排版組合（例如：極致暗色模式、高對比專業亮色、以核心大類為主題的主色調）。
-
-### 🎯 ⑥ 業務故事與決策目標 (Business Goal)
-* **目的**：決定額外的功能（警示、達成率等）。
-* **詢問與建議**：提供 3 種應用場景建議（例如：主管例會報告、即時違規監控、專案進度追蹤）。
-
----
-
-## 3. 產出動態前後端程式碼
-
-當使用者完成上述 6 大核心項目的確認後，依據討論共識在本地 `tmp/` 目錄下生成 3 個核心檔案：
-- `Code.gs`：負責伺服器端 `doGet()` 路由與符合上述共識的資料解析與清洗邏輯。
-- `index.html`：基於 Chart.js 提供符合共識的前端互動頁面，實作篩選器、KPI 卡片與圖表。
-- `appsscript.json`：設定 Apps Script 專案屬性。
-
-## 4. 連接與強制推送 (clasp)
-- 本地建立 `.clasp.json`，填入 Script ID。
-- 執行強制推送：
-  ```powershell
-  npx.cmd clasp push -f
+## 5. 前端 UI/UX 與佈局最佳實踐
+* **圖表定高防溢出 (CSS)**：防止 Chart.js 在視窗重繪時寫死行內高度導致相鄰彈性容器縮水。
+  ```css
+  .chart-container-wrapper { position: relative; width: 100%; height: 100%; }
+  .chart-container-wrapper canvas { position: absolute; top:0; left:0; width:100% !important; height:100% !important; }
   ```
+  *且 Chart.js options 須設 `responsive: true` 與 `maintainAspectRatio: false`。*
+* **狀態記憶機制 (JS)**：重繪 DOM 時（如年份切換），讀取全域變數（如 `let isEnforcementExpanded;`）維持展開狀態。
+* **控制標籤長度限制**：動態標籤字數最簡化（如 `全部年度`），並使用 CSS `text-overflow: ellipsis` 預防長文字變形。
 
-## 5. 部署網頁應用程式
-- 指引使用者在 Apps Script 網頁後台進行「新增部署」為「網頁應用程式」，並設定存取權限為「所有人」。
-
----
-
-## 🛠️ 排錯指南 (常見問題)
-
-| 問題 | 解法 |
-|---|---|
-| nlm 指令找不到 | 將 Python Scripts 目錄加入 PATH 環境變數。 |
-| GitHub CLI 提示 Token 無效 | 執行 `$env:GITHUB_TOKEN = $null` 以回歸 Keyring。 |
-| clasp push 顯示 Skipping push | 使用 `npx.cmd clasp push -f` 強制覆蓋。 |
+## 🛠️ 排錯指南
+* `nlm` 找不到 ➔ 將 Python Scripts 加到 PATH。
+* GitHub Token 錯誤 ➔ 執行 `$env:GITHUB_TOKEN = $null`。
+* clasp push 失敗 ➔ 使用 `-f` 強制覆蓋。
